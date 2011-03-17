@@ -29,6 +29,7 @@ from django.core.urlresolvers import reverse, NoReverseMatch
 from django.core.serializers.json import DateTimeAwareJSONEncoder
 from django.http import HttpResponse
 from django.core import serializers
+from django.conf import settings
 
 from utils import HttpStatusCode, Mimer
 from validate_jsonp import is_valid_jsonp_callback_value
@@ -388,7 +389,10 @@ class JSONEmitter(Emitter):
     """
     def render(self, request):
         cb = request.GET.get('callback', None)
-        seria = simplejson.dumps(self.construct(), cls=DateTimeAwareJSONEncoder, ensure_ascii=False, indent=4)
+        if not settings.DEBUG:
+            seria = simplejson.dumps(self.construct(), cls=DateTimeAwareJSONEncoder, ensure_ascii=False)
+        else:
+            seria = simplejson.dumps(self.construct(), cls=DateTimeAwareJSONEncoder, ensure_ascii=False, indent = 4)
 
         # Callback
         if cb and is_valid_jsonp_callback_value(cb):
