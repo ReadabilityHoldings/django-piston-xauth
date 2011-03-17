@@ -13,3 +13,7 @@ develop-eggs
 .svn
 *.swp
 .hg
+.project
+.metadata
+.pydevproject
+.settings
