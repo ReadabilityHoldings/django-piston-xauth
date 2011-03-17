@@ -42,6 +42,7 @@ class Consumer(models.Model):
 
     status = models.CharField(max_length=16, choices=CONSUMER_STATES, default='pending')
     user = models.ForeignKey(User, null=True, blank=True, related_name='consumers')
+    xauth_allowed = models.BooleanField("Allow xAuth", default = False)
 
     objects = ConsumerManager()
         
