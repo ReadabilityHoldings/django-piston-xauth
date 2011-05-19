@@ -399,8 +399,10 @@ class JSONEmitter(Emitter):
             return '%s(%s)' % (cb, seria)
 
         return seria
+    
+JSON_CONTENT_TYPE = getattr(settings, 'PISTON_JSON_CONTENT_TYPE', 'application/json')
 
-Emitter.register('json', JSONEmitter, 'application/json; charset=utf-8')
+Emitter.register('json', JSONEmitter, '%s; charset=utf-8' % JSON_CONTENT_TYPE)
 Mimer.register(simplejson.loads, ('application/json',))
 
 class YAMLEmitter(Emitter):
