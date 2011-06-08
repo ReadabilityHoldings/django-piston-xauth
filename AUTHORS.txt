@@ -1,3 +1,9 @@
+Modifications by Readability, based off a fork by Ildus Kurbangaliev:
+
+    http://gitorious.org/django-addons/django-piston
+
+--
+
 django-piston was originally written by Jesper Noehr, but since
 its release, many people have contributed invaluable feedback and patches:
 
