@@ -1,8 +1,6 @@
 import time
-from django.http import HttpResponseNotAllowed, HttpResponseForbidden, HttpResponse, HttpResponseBadRequest
-from django.core.urlresolvers import reverse
+from django.http import HttpResponse
 from django.core.cache import cache
-from django import get_version as django_version
 from django.core.mail import send_mail, mail_admins
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -10,16 +8,29 @@ from django.template import loader, TemplateDoesNotExist
 from django.contrib.sites.models import Site
 from decorator import decorator
 
-from datetime import datetime, timedelta
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
-__version__ = '0.2.3rc1'
+__version__ = '0.2.3rc1-readability-branch'
 
 def get_version():
     return __version__
 
+# We never want to display debug information to the user about an error, but we DO want to catch and display a JSON structure when an error occurs.
+# So we override this method to return a generic 500.
 def format_error(error):
-    return u"Piston/%s (Django %s) crash report:\n\n%s" % \
-        (get_version(), django_version(), error)
+    json_response = dict({
+        "error": True,
+        "errorCode": 500,
+        "message": "Readability encountered a server error. We should have been made aware of this issue automatically. If this continues, please contact us at contact@readability.com and let us know under what conditions you're receiving this error."
+    })
+
+    if settings.DEBUG:
+      json_response['message'] += ' (%s)' % error
+    
+    return json.dumps(json_response)
 
 class rc_factory(object):
     """
@@ -27,9 +38,10 @@ class rc_factory(object):
     """
     CODES = dict(ALL_OK = ('OK', 200),
                  CREATED = ('Created', 201),
-                 DELETED = ('', 204), # 204 says "Don't send a body!"
+                 ACCEPTED = ('Accepted', 202),
+                 DELETED = ('No Content', 204), # 204 says "Don't send a body!"
                  BAD_REQUEST = ('Bad Request', 400),
-                 FORBIDDEN = ('Forbidden', 401),
+                 FORBIDDEN = ('Forbidden', 403),
                  NOT_FOUND = ('Not Found', 404),
                  DUPLICATE_ENTRY = ('Conflict/Duplicate', 409),
                  NOT_HERE = ('Gone', 410),
@@ -349,3 +361,15 @@ def send_consumer_mail(consumer):
         print "Subject: %s" % _(subject)
         print body
 
+def head_guard(f):
+    """
+    Decorator to make sure that responses to HEAD requests have empty
+    body.
+    """
+
+    def wrap(self, request, *args, **kwargs):
+        response = f(self, request, *args, **kwargs)
+        if request.method == "HEAD":
+            response.content = ''
+        return response
+    return wrap

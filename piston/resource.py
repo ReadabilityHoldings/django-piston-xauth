@@ -5,7 +5,7 @@ from django.http import (HttpResponse, Http404, HttpResponseNotAllowed,
 from django.views.debug import ExceptionReporter
 from django.views.decorators.vary import vary_on_headers
 from django.conf import settings
-from django.core.mail import send_mail, EmailMessage
+from django.core.mail import EmailMultiAlternatives
 from django.db.models.query import QuerySet
 from django.http import Http404
 
@@ -15,6 +15,7 @@ from doc import HandlerMethod
 from authentication import NoAuthentication
 from utils import coerce_put_post, FormValidationError, HttpStatusCode
 from utils import rc, format_error, translate_mime, MimerDataException
+from utils import head_guard
 
 CHALLENGE = object()
 
@@ -27,7 +28,8 @@ class Resource(object):
     `NoAuthentication` will be used by default.
     """
     callmap = { 'GET': 'read', 'POST': 'create',
-                'PUT': 'update', 'DELETE': 'delete' }
+                'PUT': 'update', 'DELETE': 'delete',
+                'HEAD': 'meta' }
 
     def __init__(self, handler, authentication=None):
         if not callable(handler):
@@ -111,6 +113,7 @@ class Resource(object):
 
         return actor, anonymous
 
+    @head_guard
     @vary_on_headers('Authorization')
     def __call__(self, request, *args, **kwargs):
         """
@@ -237,12 +240,11 @@ class Resource(object):
         subject = "Piston crash report"
         html = reporter.get_traceback_html()
 
-        message = EmailMessage(settings.EMAIL_SUBJECT_PREFIX+subject,
-                                html, settings.SERVER_EMAIL,
-                                [ admin[1] for admin in settings.ADMINS ])
+        email_text = "This message is only visible in HTML view."
 
-        message.content_subtype = 'html'
-        message.send(fail_silently=True)
+        email = EmailMultiAlternatives(subject, email_text, settings.SERVER_EMAIL, [ admin[1] for admin in settings.ADMINS ])
+        email.attach_alternative(html, "text/html")
+        email.send(fail_silently=True)
 
 
     def error_handler(self, e, request, meth, em_format):

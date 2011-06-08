@@ -11,6 +11,7 @@ from django.core.urlresolvers import get_callable
 from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import render_to_response
 from django.template import RequestContext
+from django.views.decorators.csrf import csrf_exempt
 
 from piston import forms
 
@@ -150,6 +151,7 @@ def send_oauth_error(err=None):
 
     return response
 
+@csrf_exempt
 def oauth_request_token(request):
     oauth_server, oauth_request = initialize_server_request(request)
     
@@ -206,7 +208,7 @@ def oauth_user_auth(request):
                 args = '?'+token.to_string(only_key=True)
             else:
                 args = '?error=%s' % 'Access not granted by user.'
-                print "FORM ERROR", form.errors
+                # print "FORM ERROR", form.errors
             
             if not callback:
                 callback = getattr(settings, 'OAUTH_CALLBACK_VIEW')
@@ -221,6 +223,7 @@ def oauth_user_auth(request):
             
     return response
 
+@csrf_exempt
 def oauth_access_token(request):
     oauth_server, oauth_request = initialize_server_request(request)
     
@@ -229,6 +232,8 @@ def oauth_access_token(request):
         
     try:
         token = oauth_server.fetch_access_token(oauth_request)
+    	if token is None:
+    		return HttpResponse('')
         return HttpResponse(token.to_string())
     except oauth.OAuthError, err:
         return send_oauth_error(err)

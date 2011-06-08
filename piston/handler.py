@@ -4,6 +4,7 @@ from utils import rc
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.conf import settings
 
+
 typemapper = { }
 handler_tracker = [ ]
 
@@ -47,7 +48,7 @@ class BaseHandler(object):
     """
     __metaclass__ = HandlerMetaClass
 
-    allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
+    allowed_methods = ('GET', 'POST', 'PUT', 'DELETE', 'HEAD')
     anonymous = is_anonymous = False
     exclude = ( 'id', )
     fields =  ( )
@@ -76,6 +77,11 @@ class BaseHandler(object):
             return True
         except self.model.DoesNotExist:
             return False
+
+    def meta(self, request, *args, **kwargs):
+        # head_guard in resource.__call__ will strip the body, we want to
+        # keep that as long as possible to better emulate the HEAD request
+        return self.read(request, *args, **kwargs)
 
     def read(self, request, *args, **kwargs):
         if not self.has_model():
