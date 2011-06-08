@@ -3,6 +3,8 @@ import oauth
 from models import Nonce, Token, Consumer
 from models import generate_random, VERIFIER_SIZE
 
+from django.contrib.auth import login, authenticate
+
 class DataStore(oauth.OAuthDataStore):
     """Layer between Python OAuth and Django database."""
     def __init__(self, oauth_request):
@@ -17,7 +19,6 @@ class DataStore(oauth.OAuthDataStore):
             self.consumer.secret = self.consumer.secret.encode('ascii')
 
             return self.consumer
-
         except Consumer.DoesNotExist:
             return None
 
@@ -27,7 +28,7 @@ class DataStore(oauth.OAuthDataStore):
         elif token_type == 'access':
             token_type = Token.ACCESS
         try:
-            self.request_token = Token.objects.get(key=token, 
+            self.request_token = Token.objects.get(key=token,
                                                    token_type=token_type)
             return self.request_token
         except Token.DoesNotExist:
@@ -36,7 +37,7 @@ class DataStore(oauth.OAuthDataStore):
     def lookup_nonce(self, oauth_consumer, oauth_token, nonce):
         if oauth_token is None:
             return None
-        nonce, created = Nonce.objects.get_or_create(consumer_key=oauth_consumer.key, 
+        nonce, created = Nonce.objects.get_or_create(consumer_key=oauth_consumer.key,
                                                      token_key=oauth_token.key,
                                                      key=nonce)
         if created:
@@ -49,10 +50,10 @@ class DataStore(oauth.OAuthDataStore):
             self.request_token = Token.objects.create_token(consumer=self.consumer,
                                                             token_type=Token.REQUEST,
                                                             timestamp=self.timestamp)
-            
+
             if oauth_callback:
                 self.request_token.set_callback(oauth_callback)
-            
+
             return self.request_token
         return None
 
@@ -76,4 +77,10 @@ class DataStore(oauth.OAuthDataStore):
             self.request_token.verifier = generate_random(VERIFIER_SIZE)
             self.request_token.save()
             return self.request_token
+        return None
+
+    def lookup_user(self, username, password):
+        user = authenticate(username=username, password=password)
+        if user and user.is_active:
+            return user
         return None
